@@ -1,9 +1,11 @@
-;Exomizer 2 Z80 decoder
-;Copyright (C) 2008-2016 by Jaime Tejedor Gomez (Metalbrain)
+;Exomizer 3 Z80 decoder
+;Copyright (C) 2008-2018 by Jaime Tejedor Gomez (Metalbrain)
 ;
 ;Optimized by Antonio Villena and Urusergi
 ;
 ;Compression algorithm by Magnus Lind
+;   exomizer raw -P13 -T0 -b (literals=1)
+;   exomizer raw -P13 -T1 -b (literals=0)
 ;
 ;   This depacker is free software; you can redistribute it and/or
 ;   modify it under the terms of the GNU Lesser General Public
@@ -78,7 +80,7 @@ mloop   add     a, a
 getind  add     a, a
         call    z, getbit
         inc     c
-        jr      c, getind
+        jr      nc, getind
     IF  mapbase-mapbase/256*256<240 AND mapbase-mapbase/256*256>135
         bit     4, c
       IF  literals=1

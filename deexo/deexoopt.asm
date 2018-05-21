@@ -1,9 +1,13 @@
-;Exomizer 2 Z80 decoder
-;Copyright (C) 2008-2016 by Jaime Tejedor Gomez (Metalbrain)
+;Exomizer 3 Z80 decoder
+;Copyright (C) 2008-2018 by Jaime Tejedor Gomez (Metalbrain)
 ;
 ;Optimized by Antonio Villena and Urusergi
 ;
 ;Compression algorithm by Magnus Lind
+;   exomizer raw -P13 -T0 [-b] (speed<3, literals=1)
+;   exomizer raw -P13 -T1 [-b] (speed<3, literals=0)
+;   exomizer raw -P15 -T0 [-b] (speed=3, literals=1)
+;   exomizer raw -P15 -T1 [-b] (speed=3, literals=0)
 ;
 ;   This depacker is free software; you can redistribute it and/or
 ;   modify it under the terms of the GNU Lesser General Public
@@ -19,15 +23,11 @@
 ;   License along with this library; if not, write to the Free Software
 ;   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 ;
-; forward:  exomizer raw <input_file> [-c] -o <intermediate_file>
-;           exoopt <intermediate_file> <output_file>
-; backward: exomizer raw <input_file> -b -r [-c] -o <intermediate_file>
-;           exoopt <intermediate_file> <output_file> -r
 ; SIZE        speed 0   speed 1   speed 2   speed 3   range88-ef
-; forw nolit      148       150       166       203       +2
-; back nolit      146       148       164       201       +2
-; forw liter      158       160       176       213       +3
-; back liter      156       158       174       211       +3
+; forw nolit      148       150       167       204       +2
+; back nolit      146       148       165       202       +2
+; forw liter      158       160       177       214       +3
+; back liter      156       158       175       212       +3
 ;        output  deexoopt.bin
 ;        define  mapbase  $5b00
 ;        define  speed    3
@@ -90,23 +90,27 @@ exget4  adc     a, a
     IF  speed=3
         ex      af, af'
         ld      a, c
-        cp      8
-        jr      c, exget5
-        xor     136
-exget5  inc     a
+        rrca
+        inc     a
       IF  mapbase-mapbase/256*256<240 AND mapbase-mapbase/256*256>135
         ld      (iy-256+mapbase-mapbase/256*256), a
       ELSE
         ld      (iy-112+mapbase-(mapbase+16)/256*256), a
       ENDIF
-        push    hl
+        jr      nc, get5
+        xor     136
+get5    push    hl
         ld      hl, 1
+        defb    56
+setbit  add     hl, hl
+        dec     a
+        jr      nz, setbit
         ex      af, af'
-        defb    210
-    ENDIF
+    ELSE
 exsetb  add     hl, hl
         dec     c
         jr      nz, exsetb
+    ENDIF
       IF  mapbase-mapbase/256*256<240 AND mapbase-mapbase/256*256>135
         ld      (iy-204+mapbase-mapbase/256*256), e
         ld      (iy-152+mapbase-mapbase/256*256), d
@@ -170,9 +174,13 @@ exgbmc  ld      c, 112-1
       ENDIF
 exgeti  add     a, a
         jr      z, exgbi
-    ENDIF
 exgbic  inc     c
-        jr      c, exgeti
+        jr      nc, exgeti
+        ccf
+    ELSE
+exgbic  inc     c
+        jr      nc, exgeti
+    ENDIF
     IF  mapbase-mapbase/256*256<240 AND mapbase-mapbase/256*256>135
         bit     4, c
       IF  literals=1
@@ -320,14 +328,8 @@ exgbi   ld      a, (hl)
     ENDIF
     IF  speed=3
 exgbts  jp      p, exlee8
-        ld      e, (hl)
-        IF  back=1
-        dec     hl
-        ELSE
-        inc     hl
-        ENDIF
         rl      b
-        ret     z
+        jr      z, exgby
         srl     b
         defb    250
 exxopy  ld      a, (hl)
@@ -340,6 +342,12 @@ exl16   adc     a, a
         jr      z, exxopy
         rl      d
         djnz    exl16
+exgby   ld      e, (hl)
+        IF  back=1
+        dec     hl
+        ELSE
+        inc     hl
+        ENDIF
         ret
 excopy  ld      a, (hl)
         IF  back=1

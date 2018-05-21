@@ -1,9 +1,11 @@
-;Exomizer 2 Z80 decoder
-;Copyright (C) 2008-2016 by Jaime Tejedor Gomez (Metalbrain)
+;Exomizer 3 Z80 decoder
+;Copyright (C) 2008-2018 by Jaime Tejedor Gomez (Metalbrain)
 ;
 ;Optimized by Antonio Villena and Urusergi
 ;
 ;Compression algorithm by Magnus Lind
+;   exomizer raw -P15 -T0 (literals=1)
+;   exomizer raw -P15 -T1 (literals=0)
 ;
 ;   This depacker is free software; you can redistribute it and/or
 ;   modify it under the terms of the GNU Lesser General Public
@@ -40,18 +42,18 @@ get4    adc     a, a
         ld      iyh, mapbase/256
         ex      af, af'
         ld      a, c
-        cp      8
-        jr      c, get5
-        xor     136
-get5    inc     a
+        rrca
+        inc     a
         ld      (iy+0), a
-        push    hl
+        jr      nc, get5
+        xor     136
+get5    push    hl
         ld      hl, 1
-        ex      af, af'
-        defb    210
+        defb    56
 setbit  add     hl, hl
-        dec     c
+        dec     a
         jr      nz, setbit
+        ex      af, af'
         inc     iyh
         ld      (iy+0), e
         inc     iyh
@@ -70,13 +72,14 @@ mloop   add     a, a
 gbmc    ld      bc, mapbase+240
         add     a, a
         jr      z, gbi2
-        jr      nc, gbic
+        jr      c, gbic
 getind  add     a, a
         jr      z, gbi
 geti2   inc     c
-        jr      c, getind
+        jr      nc, getind
         ret     z
-gbic    push    de
+gbic    and     a
+        push    de
         ex      af, af'
         ld      a, (bc)
         ld      b, a
@@ -137,14 +140,14 @@ goit    ld      d, e
 gbi     ld      a, (hl)
         dec     hl
         adc     a, a
-        jr      c, geti2
+        jr      nc, geti2
         inc     c
         jp      nz, gbic
         ret
 gbi2    ld      a, (hl)
         dec     hl
         adc     a, a
-        jr      c, getind
+        jr      nc, getind
         jp      gbic
 gbm     ld      a, (hl)
         dec     hl
@@ -153,10 +156,8 @@ gbm     ld      a, (hl)
         jp      litcop
 
 getbits jp      p, lee8
-        ld      e, (hl)
-        dec     hl
         rl      b
-        ret     z
+        jr      z, gby
         srl     b
         defb    $fa
 xopy    ld      a, (hl)
@@ -165,6 +166,8 @@ lee16   adc     a, a
         jr      z, xopy
         rl      d
         djnz    lee16
+gby     ld      e, (hl)
+        dec     hl
         ret
 
 copy    ld      a, (hl)

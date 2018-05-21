@@ -1,5 +1,5 @@
-;Exomizer 2 Z80 decoder
-;Copyright (C) 2008-2016 by Jaime Tejedor Gomez (Metalbrain)
+;Exomizer 3 Z80 decoder
+;Copyright (C) 2008-2018 by Jaime Tejedor Gomez (Metalbrain)
 ;
 ;Optimized by Antonio Villena and Urusergi
 ;

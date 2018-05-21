@@ -4,6 +4,8 @@
 ;Optimized by Antonio Villena and Urusergi
 ;
 ;Compression algorithm by Magnus Lind
+;   exomizer raw -P13 -T0 (literals=1)
+;   exomizer raw -P13 -T1 (literals=0)
 ;
 ;   This depacker is free software; you can redistribute it and/or
 ;   modify it under the terms of the GNU Lesser General Public
@@ -82,7 +84,8 @@ gbmc    ld      c, 112-1
 getind  add     a, a
         jr      z, gbi
 gbic    inc     c
-        jr      c, getind
+        jr      nc, getind
+        ccf
     IF  mapbase-mapbase/256*256<240 AND mapbase-mapbase/256*256>135
         bit     4, c
       IF  literals=1

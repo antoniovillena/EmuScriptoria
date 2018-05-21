@@ -1,9 +1,11 @@
 ;Exomizer 2 Z80 decoder
-;Copyright (C) 2008-2016 by Jaime Tejedor Gomez (Metalbrain)
+;Copyright (C) 2008-2018 by Jaime Tejedor Gomez (Metalbrain)
 ;
 ;Optimized by Antonio Villena and Urusergi
 ;
 ;Compression algorithm by Magnus Lind
+;   exomizer raw -P15 -T0 (literals=1)
+;   exomizer raw -P15 -T1 (literals=0)
 ;
 ;   This depacker is free software; you can redistribute it and/or
 ;   modify it under the terms of the GNU Lesser General Public
@@ -41,22 +43,22 @@ get4    adc     a, a
         jr      nc, get4
         ex      af, af'
         ld      a, c
-        cp      8
-        jr      c, get5
-        xor     136
-get5    inc     a
+        rrca
+        inc     a
       IF  mapbase-mapbase/256*256<240 AND mapbase-mapbase/256*256>135
         ld      (iy-256+mapbase-mapbase/256*256), a
       ELSE
         ld      (iy-112+mapbase-(mapbase+16)/256*256), a
       ENDIF
-        push    hl
+        jr      nc, get5
+        xor     136
+get5    push    hl
         ld      hl, 1
-        ex      af, af'
-        defb    210
+        defb    56
 setbit  add     hl, hl
-        dec     c
+        dec     a
         jr      nz, setbit
+        ex      af, af'
       IF  mapbase-mapbase/256*256<240 AND mapbase-mapbase/256*256>135
         ld      (iy-204+mapbase-mapbase/256*256), e
         ld      (iy-152+mapbase-mapbase/256*256), d
@@ -88,7 +90,8 @@ gbmc    ld      c, 112-1
 getind  add     a, a
         jr      z, gbi
 gbic    inc     c
-        jr      c, getind
+        jr      nc, getind
+        ccf
     IF  mapbase-mapbase/256*256<240 AND mapbase-mapbase/256*256>135
         bit     4, c
       IF  literals=1
@@ -199,10 +202,8 @@ gbi     ld      a, (hl)
         jp      gbic
 
 getbits jp      p, lee8
-        ld      e, (hl)
-        inc     hl
         rl      b
-        ret     z
+        jr      z, gby
         srl     b
         defb    250
 xopy    ld      a, (hl)
@@ -211,6 +212,8 @@ lee16   adc     a, a
         jr      z, xopy
         rl      d
         djnz    lee16
+gby     ld      e, (hl)
+        inc     hl
         ret
 
 copy    ld      a, (hl)

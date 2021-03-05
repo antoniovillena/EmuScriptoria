@@ -321,6 +321,35 @@
         ; $fe00-$ffff used to load bootsector by +3DOS ROM
 ;--------------------------------------------------
 
+    IF zx_tap
+ ;#################################################################################################
+        define  temp_working_mem    $8000   ; idem para contener rutinas temp y stack
+        define  save_buffer         $c100   ; creo que +3DOS no usa esto (1K)
+        define  temp_buffer_file    $c600   ; tmp en donde vuelco lo que lea desde disco
+
+        define  conf_ram            $e800   ; guardo el nro de pagina del 4to seg que
+                                            ; habia al llamarse la rutina LOAD de ROM3
+        define  tmp_BANKM           $e801   ; guardo una copia aqui de lo que habia en 5B5C
+        define  tmp_BANK678         $e802   ; idem pero para 5B67
+        define  save_STACK          $e803   ; (2) guardo temporalmente SP aqui
+        define  tapeloader_stat1    $e805   ; (1) multiproposito tapeloader 1
+        define  tapeloader_stat2    $e806   ; (1) multiproposito tapeloader 2
+        define  save_REGI           $e807   ; (1) respaldo aqui el registro I
+        define  save_INTERR         $e808   ; (1) respaldo aqui el estado de las interrupciones
+        define  buffer_ADDR         $e809   ; (2) direccion del buffer por la que voy
+        define  buffer_COUNT        $e80B   ; (2) cuenta regresiva para vaciar el buffer
+        define  terminar_CARGA      $e80D   ; (1) poner a 1 para terminar la carga y salir por error
+        define  EXCEPCIONES         $e80E   ; (1) indique llamar a funciones alternativas en la funcion
+                                            ; que llenga el buffer
+        define  save_POS_FILE       $e80F   ; (4) guarda temporalmente la posicion del puntero del archivo #6
+        define  save_rt_alert       $e813   ; (2) swapeo ac  la dir de la rutina alert. para desactivarla 
+                                            ; mientras dure la carga desde "cinta"
+
+        define  buffer_file_size    5*1024  ; si uso valores mayores, o no funciona o queda corrupto
+;##################################################################################################
+    ENDIF
+
+
       .macro  ROM1  par1
         call    l3e80
         defw    par1
@@ -7675,7 +7704,7 @@ l29c5   bit     1, (ix+$1a)
         ld      a, (hl)
         xor     d
         ld      (hl), a
-        inc     hl
+        inc     hl			;<<<<<<<<<<< inc l
         ld      a, (hl)
         xor     e
         ld      (hl), a
@@ -7685,13 +7714,13 @@ l29d4   ld      a, b
         and     (hl)
         or      d
         ld      (hl), a
-        inc     hl
+        inc     hl			;<<<<<<<<<<< inc l
         ld      a, c
         cpl
         and     (hl)
         or      e
         ld      (hl), a
-l29df   dec     hl
+l29df   dec     hl			;<<<<<<<<<<< dec l
         inc     h
         ld      a, h
         and     7
@@ -7840,20 +7869,21 @@ l2ac2   ld      a, b
         and     $e0
         or      c
         ld      e, a
-        ld      a, l
-        and     $1f
-        ld      l, a
-        ld      h, 0
-        add     hl, hl
-        add     hl, hl
-        add     hl, hl
-        add     hl, hl
-        add     hl, hl
-        ld      b, 0
-        add     hl, bc
-        ld      bc, $5800
-        add     hl, bc
-        ret
+            ld      a, l
+            and     $1f
+            ld      l, a
+            ld      h, 0
+            add     hl, hl
+            add     hl, hl
+            add     hl, hl
+            add     hl, hl
+            add     hl, hl
+            ld      b, 0
+            add     hl, bc
+            ld      bc, $5800
+            add     hl, bc
+            ret
+
 l2aeb   xor     a
         srl     e
         rra
@@ -9918,8 +9948,10 @@ m14e5   defm    $10, $00, $11, $07, $13, $00
         defm    "To cancel - press BREAK twic", 'e'+$80
         defb    0, 0, 0, 0, 0, 0, 0, 0
       ENDIF
+     
 l3834   defm    $7f, "1982, 1986, 1987 Amstrad Plc.", 13
         defm    $7f, "2000-2015 Garry Lancaster v1.4", '3'+$80
+     
 l3871   ret     nc
         call    l15da
         ret     c
@@ -10665,7 +10697,7 @@ l3ff0   jp      l2187           ; go to the routine
         define  DOS_FLUSH           $0142
         define  DOS_SET_ACCESS      $0145
         define  DOS_SET_ATTRIBUTES  $0148
-        define  DOS_OPEN_DRIVE      $014b
+        define  DOSOPEN_DRIVE      $014b
         define  DOS_SET_MESSAGE     $014e
         define  DOS_REF_XDPB        $0151
         define  DOS_MAP_B           $0154
@@ -17726,13 +17758,13 @@ m2e74   push    bc
         ld      a,(src_drv)     ; get source drive letter
         ld      bc,$0001
         call    m32b6           ; save TSTACK in page 7
-        ROM2    DOS_OPEN_DRIVE  ; open source drive as exclusive-read file
+        ROM2    DOSOPEN_DRIVE  ; open source drive as exclusive-read file
         call    m32ee           ; restore TSTACK
         jp      nc,m3219        ; move on if error
         ld      a,(dst_drv)     ; get dest drive letter
         ld      bc,$0102
         call    m32b6           ; save TSTACK in page 7
-        ROM2    DOS_OPEN_DRIVE  ; open dest drive as exclusive-write file
+        ROM2    DOSOPEN_DRIVE  ; open dest drive as exclusive-write file
         call    m32ee           ; restore TSTACK
         jp      nc,m3219        ; move on if error
         ld      a,$01
@@ -19184,7 +19216,15 @@ m3ae1   ROM3    o1C8C
         call    m2b89
         ld      a, $ff
         ld      (de), a
-        ld      hl, tmp_file
+        
+; #############################################################################        
+        if zx_tap
+            call    is_tap
+        else
+            ld      hl, tmp_file
+        endif
+; #############################################################################
+
         call    m32b6
         ROM2    IDE_SNAPLOAD
         call    m32ee
@@ -19600,11 +19640,83 @@ m3e5c   ld      b, a
         call    m2b64
         ret
 m3f5c   defb    $ef, $01, $c1, $02, $34, $40, $41, $00, $00, $32, $e1, $38, $c9
-      IF spanish
+
+
+; ####################################################################################################################
+      if zx_tap
+is_tap:     
+        xor     a
+        ld      (tapeloader_stat1), a
+        dec     de          ;veo si termina en .tap
+        ld      a, (de)
+        and     $df
+        cp      'P'
+        jr      nz, notap
+
+        dec     de
+        ld      a, (de)
+        and     $df
+        cp      'A'
+        jr      nz, notap
+        
+        dec     de
+        ld      a, (de)
+        and     $df
+        cp      'T'
+        jr      nz, notap
+
+        dec     de
+        ld      a, (de)
+        cp      '.'
+        jr      nz, notap
+        
+        ld      bc, $0000
+        ld      (save_POS_FILE+0), bc
+        ld      (save_POS_FILE+2), bc
+        
+        ld      b, $06
+        ROM2    DOS_ABANDON
+        
+        ld      bc, $0601            ; abro el archivo lectura exc. con handle: 10
+        ld      a, c
+        ld      (tapeloader_stat1), a    ; 1=en pag 7 me indicar  que estoy cargando desde cinta
+        ld      de, $0002        ; error si no existe + puntero en 0
+        ld      hl, tmp_file
+        ROM2    DOS_OPEN            ; open file
+
+        jr      c,  ok_opentap        ; salto adelante si todo Ok
+
+        call    m2b64               ; page in normal memory
+        call    m0e9a               ; cause DOS error
+        defb    $ff
+
+ok_opentap: 
+        ld      a, (LODDRV)
+        ld      (tapeloader_stat2), a
+        ld      a, 'T'
+        ld      (LODDRV), a     ; cambio a T: el "drive" por defecto
+
+        call    m32ee           ; esta es la forma de retornar
+        call    m2b64           ; al basic
+        ret
+
+notap:      
+        ld      hl, tmp_file        ; trato de continuar como si "aqui no paso nada"
+        ret
+        defs    187 - ($-is_tap)
+      else 
         defs    187
+      endif
+
+; ####################################################################################################################
+      IF spanish
+      ;  defs    187
       ELSE
-        defs    206
+      ;  defs    206
+         defs    19
       ENDIF
+; ####################################################################################################################
+
   ELSE
 ; The "COPY RANDOMIZE" command
 ; This is a silly command
@@ -33593,9 +33705,14 @@ o0556:  INC     D               ; reset the zero flag without disturbing carry.
 
 ;   the reading of the EAR bit (D6) will always be preceded by a test of the
 ;   space key (D0), so store the initial post-test state.
-
+      IF zx_tap
+        CALL    NEW_LOAD
+CONT_LOAD:
+      ELSE
         IN      A,($FE)         ; read the ear state - bit 6.
         RRA                     ; rotate to bit 5.
+      ENDIF
+        
         AND     $20             ; isolate this bit.
         OR      $02             ; combine with red border colour.
         LD      C,A             ; and store initial state long-term in C.
@@ -37798,7 +37915,6 @@ o1536:  DEFB    'A'+$80                                 ; R
 o1537:  DEFB    ',',' '+$80                             ; used in report line.
 ;; copyright
 o1539:
-
         DEFB    $7F                                     ; copyright
         DEFM    " 1982 Amstra"
 o1547:  DEFB    'd'+$80
@@ -51098,7 +51214,286 @@ o38AC   LD      BC,$7FFD
         OUT     (C),A           ; page back page 0
         RET
 
+;#######################################################################################
+      if zx_tap
+    ;**** disponible ****
+        /*
+        1) averiguar cual pagina esta arriba
+        2) averiguar si estoy en modo 128 o 48
+        3) si estoy en 48 retornar
+        4) si estoy en 128 preguntar si 
+            (tapeloader_stat1)=1
+            si es asi cargar desde disco
+            y si no retornar 
+        
+        5) si cargo desde disco los registros
+            deben tener los mismos valores
+            que tendrian si hubiese cargado desde
+            cinta, especialmente IX
+        */
+        
+FREE_START1:    
+NEW_LOAD:   
+        EX  AF,AF'  
+        PUSH    AF  ;GUARDA AF ALT
+        EX  AF,AF'  
+        PUSH    AF  ;GUARDA AF NORMAL (ESTO TIENE EL FLAG CARGAR/VERIFICAR)
+        PUSH    DE
+        PUSH    HL
+        PUSH    IX
+        
+        ;ESTOY SEGURO QUE LAS INT. ESTAN deshabilitadas
+        ;de lo contario el usuario tampoco podr?a cargar
+        ;desde cinta
+        
+        ;puedo usar HL y BC con tranquilidad
+        
+        LD  HL, ($C000)  ;GUARDO LOS CONTENIDOS DE C000-C003
+        PUSH    HL
+        LD  HL, ($C002)
+        PUSH    HL
+        LD  HL, $5446    ;*INSERTO* A PARTIR DE $C000 LA CADENA "FTAP" (POR FIND TAP)
+        LD  ($C000), HL
+        LD  HL, $5041
+        LD  ($C002), HL
+
+              
+        LD  A, $10       ; A PARTIR DE AQUI AVERIGUO QUE PAGINA TENGO ARRIBA
+        LD  BC, $7FFD    ; BUSCANDO EN CADA UNA DE ELLAS LA CADENA "FTAP" EN C000-C003
+LFIND_UPPERMEM: 
+        OUT (C), A       ; Y ME DETENGO CUANDO LA ENCUENTRE
+        LD  HL, ($C000)
+        AND A
+        LD  DE, $5446
+        SBC HL ,DE
+        JR  NZ, NOMEMORY
+        LD  HL, ($C002)
+        AND A
+        LD  DE, $5041
+        SBC HL, DE
+        JR  Z, ENCONTRADA
+NOMEMORY:   
+        INC A
+        CP  $18
+        JR  NZ, LFIND_UPPERMEM
+
+ENCONTRADA: 
+        EX  AF,AF'      ; EN A ME QUEDA LA PAGINA QUE TENGO ARRIBA
+                        ; USO AF' PARA NO PERDER AF DE MOMENTO
+        
+        POP HL          ; RECUPERO LOS BYTES DE C000-C003
+        LD  ($C002), HL
+        POP HL
+        LD  ($C000), HL
+        
+        LD  HL, $C000
+        LD  A, $10       ; AVERIGUO SI ESTAN ACCESIBLES LOS 128K
+        OUT (C), A
+        LD  D, (HL)
+        LD  (HL), A
+
+        INC A           ;LD A,$11
+        OUT (C), A
+        LD  E, (HL)
+        LD  (HL), A
+        
+        DEC A           ;LD A,$10
+        OUT (C), A
+        CP  (HL)
+        LD  (HL), D
+        JR  Z, ES128K
+        
+        LD  (HL), E      ; RECUPERO EL BYTE NO ESTOY EN MODO 128 ASI QUE NO PUEDE HABER
+RETLOAD2:   
+        POP IX      ; CARGA DE TAPs DESDE +3DOS
+        POP HL
+        POP DE
+        POP AF
+        EX  AF, AF'
+        POP AF
+        EX  AF, AF'
+RET_NEW_LOAD:   
+        IN  A, ($FE)
+        RRA
+        RET
+    
+ES128K:     
+        LD  A, $11       ; RECUPERO LOS BYTES (SOLO EL QUE CORRESPONDIA A PAG.1 EL DE PAG 0 YA FUE RECUPERADO)
+        OUT (C), A
+        LD  (HL), E
+        
+        LD  A, $17           ; AVERIGUO SI TENGO QUE CARGAR DESDE DISCO
+        OUT (C), A           ; SI tapeloader_stat1==1 SIGNIFICA QUE HUBO
+        LD  A, (tapeloader_stat1)    ; UN COMANDO PREVIO SPECTRUM "xxxxxxxx.TAP"
+        LD  D, A         ; QUE PREPARO LAS COSAS
+        
+        EX  AF, AF'          ; PONER LA PAGINA DE RAM AVERIGUADA MAS ARRIBA
+        LD  (conf_ram), A        ; LA GUARDO EN ESTA VAR DE PAGINA 7
+        OUT (C), A
+        LD  A, D
+        CP  $01
+        JR  NZ, RETLOAD2
+        
+SIMULAR_TAPE:   ;Lo primero que quiero saber es que modo de interrupciones tengo
+        ;puesto que voy a poner IM2 cuando use rutinas de +3DOS asi el propio +3DOS
+        ;no me despedaza la zona de variables - 5C78
+        LD  A, $17
+        OUT (C), A
+        LD  HL, $5B00
+        LD  DE, save_buffer
+        LD  BC, 1024
+        LDIR
+        CALL SET_NORM_MEMORY   ; pongo los valores "estandar" en BANKM y BANK678
+        LD  A, I     ; porque a lo mejor la INT llamada en el HALT siguiente
+        LD  (save_REGI), A   ; se le arma lio
+        LD  A, $FF
+        LD  ($5B00), A
+        LD  A, $5B
+        LD  I, A
+        LD  HL, DUMMY_IM2
+        LD  ($5BFF), HL
+        XOR A
+        LD  (EXCEPCIONES), A
+        LD  A, (conf_ram)
+        LD  BC, $7FFD
+        OUT (C), A
+        EI
+        HALT            ; despues de que se ejecute la interrupcion puede pasar 2 cosas
+        DI          ; 1) que ($5B00)==0 lo que significaria que estaba IM2
+                    ; 2) que ($5B00)==FF lo que significaria que estaba IM1
+
+
+        LD  A, $17       ; por las dudas si alguna interrupcion cabrona me quito pag 7
+        LD  BC, $7FFD
+        OUT (C), A
+        XOR A
+        LD  (terminar_CARGA), A
+        
+        LD  A, (save_REGI)
+        LD  I, A
+        LD  A, ($5B00)
+        LD  (save_INTERR), A ; ENTONCES esta VAR me indica si es $FF = IM1 y si es $00 = IM2
+        
+        LD  HL, save_buffer
+        LD  DE, $5B00
+        LD  BC, 1024
+        LDIR
+        
+        LD  A, (conf_ram)
+        LD  BC, $7FFD
+        OUT (C), A
+        
+        CALL    SWAPEAR_RT_ALERT
+    
+        POP IX          ; CARGA DE TAPs DESDE +3DOS
+        POP HL
+        POP DE
+        POP AF
+        EX  AF, AF'
+        POP AF
+        EX  AF, AF'
+
+        CALL    GET_BYTE_TAPE
+        PUSH    AF
+        CALL    GET_BYTE_TAPE
+        LD  H, A
+        POP AF
+        LD  L, A     ; en HL tengo la cantidad de bytes a leer del bloque actual
+                    ; ej: una cabecera son 19 bytes, (17+2)4
+
+        CALL    SET_POS_SIG
+        
+        CALL    GET_BYTE_TAPE   ; CARGO EL FLAG
+        LD  C, A
+        EX  AF, AF'
+        LD  B, A
+        EX  AF, AF'
+        
+        LD  A, B
+        CP  C
+        JR  NZ, ERROR_LFLAG  ; SIMULO ERROR DE CARGA
+        
+                    ; (!! AVERIGUAR EL PUNTERO ACTUAL Y SUMARLE HL PARA SABER EN DONDE
+                    ; COMIENZE EL SIGUIENTE BLOQUE DEL TAP PARA CUANDO NECESITES PASAR
+                    ; AL SIGUIENTE BLOQUE)
+                    
+        
+        DEC HL      ; ya cargu? el flag
+        DEC HL
+        AND A
+        SBC HL, DE
+        JR  NZ, BAD_SIZE
+
+        LD  H, C     ; EL control de parity
+                    ; "comienza" con el mismo
+                    ; valor del flag
+        
+LOOP_LOAD_TAP:  
+        CALL    GET_BYTE_TAPE
+        JP  NC, END_LDTAPE
+
+        LD  C,A
+        INC A
+        AND $07
+        OUT ($FE), A
+        LD  A, C
+
+        EX  AF, AF'
+        JR  C, SET_LOAD
+
+VERIF:      
+        EX  AF,AF'
+        CP  (IX+0)
+        JR  NZ, ERROR_VERIF
+        JR  CONT_NEXT_BYTE
+        
+SET_LOAD:   
+        EX  AF,AF'
+        LD  (IX+0), A
+
+CONT_NEXT_BYTE: 
+        INC IX
+        DEC DE
+
+        LD  L, A     ; calc parity
+        LD  A, H
+        XOR L
+        LD  H, A
+        
+        LD  A, D
+        OR  E
+        JR  NZ, LOOP_LOAD_TAP
+        
+        JP  CONTINUARA
+
+
+ERROR_LFLAG:    ;JR  TAPE_ERROR  ; cuando implementes retornar NZ y quedate posicionado al comienzo
+                    ; del siguiente bloque del TAP
+
+ERROR_PARITY:   ;JR  TAPE_ERROR
+
+ERROR_VERIF:    ;JR  TAPE_ERROR
+
+BAD_SIZE:   ;JR  TAPE_ERROR  ; significa que no me coincide lo que mandaron en DE y lo que puedo
+                    ; yo ofrecer desde el TAP, asi que lo considero de "antemano" error
+                    ; de carga y muevo el puntero del TAP al siguiente bloque
+
+TAPE_ERROR: 
+        JP  MOVE_NEXT_BLQ
+
+GET_BYTE_TAPE:  
+        CALL    READ_BYTE
+        RET NC
+        CALL    CHECK_TERMINAR
+        RET
+
+SPARE1:     
+;        display "Spare1 Quedan ", /d,331 - ($-FREE_START1)," Bytes libres"
+        DEFS 331 - ($-FREE_START1);
+      else
         DEFS    331
+      endif
+;#######################################################################################
 
 ; The printer input (o3a00) and output (o3a05) routines
 ; Channel information for "P" channel points here
@@ -51227,14 +51622,382 @@ o3AB9   DEFM    "PLA", 'Y'+$80
 
         JP      o3C01           ; what's this for???
 
+;#########################################################################################
+      if zx_tap
+FREE_START2:    
+
+
+CONTINUARA: 
+        CALL    GET_BYTE_TAPE   ; cargo parity
+        CP  H
+        JP  NZ, ERROR_PARITY
+RET_BASIC:  
+        INC SP
+        INC SP
+        EX  AF,AF'
+        RET
+
+READ_BYTE:  
+        PUSH    HL
+        PUSH    DE
+        PUSH    BC
+        PUSH    IX
+        EX  AF, AF'
+        PUSH    AF
+        EX  AF, AF'
+
+RETRY_RBYTE:    
+        LD  A,$7F       ; retorno si encontre SPACE presionada
+        IN  A,($FE)
+        RRA
+        JR  NC, RET_READ_BYTE
+
+        LD  A, $17           ;PONGO PAGINA 7
+        LD  BC, $7FFD
+        OUT (C), A
+        XOR A
+        LD  (EXCEPCIONES), A
+        LD  HL, (buffer_COUNT)
+        LD  A, H
+        OR  L
+        JR  NZ, OK_HAY_UN_BYTE
+
+        LD  A, (conf_ram)        ;REESTABLEZCO ROM/RAM
+        OUT (C), A
+        CALL    DO_FILL_BUFFER
+        JR  RETRY_RBYTE
+        
+OK_HAY_UN_BYTE: 
+        DEC HL
+        LD  (buffer_COUNT), HL
+        LD  HL, (buffer_ADDR)
+        LD  D, (HL)
+        INC HL
+        LD  (buffer_ADDR), HL
+        
+        LD  A, (conf_ram)        ;REESTABLEZCO ROM/RAM
+        LD  BC, $7FFD
+        OUT (C), A
+        
+        LD  A, D
+        SCF             ;retorno CY si se leyeron bytes
+
+RET_READ_BYTE:  
+        EX  AF, AF'
+        POP AF
+        EX  AF, AF'
+        POP IX
+        POP BC
+        POP DE
+        POP HL
+
+        RET
+    
+DO_FILL_BUFFER: 
+        LD  A, $07
+        OUT ($FE), A
+        LD  A, $17           ;PONGO PAGINA 7
+        LD  BC, $7FFD
+        OUT (C), A
+
+ALT_ENTRY:  
+        LD  HL, temp_working_mem ;GUARDO LO QUE ESTA EN $8000 + 1K
+        LD  DE, save_buffer
+        LD  BC, 1024
+        LDIR
+
+        LD  A, (BANKM)       ;GUARDO ESTAS VARS. XQ TENGO QUE ALTERARLAS
+        LD  (tmp_BANKM), A       ;PA' QUE +3DOS NO SE PONGA TRISTE LA PUTA QUE LO PARIO
+        LD  A ,(BANK678)
+        LD  (tmp_BANK678), A
+        LD  (save_STACK), SP     ;TAMBIEN GUARDO STACK EN PAGINA 7
+
+        LD  HL, SWITCH_ROM2      ;copio a $8000 la rutina de lectura del buffer
+        LD  DE, temp_working_mem+200
+        LD  BC, 512
+        LDIR
+        
+        JP  temp_working_mem+200
+
+SWITCH_ROM2:    
+        LD  SP, temp_working_mem+199 ;NUEVO STACK
+
+        LD  A, $04
+        LD  (BANK678), A
+        LD  BC, $1FFD
+        OUT (C), A
+        
+        LD  A, $07
+        LD  (BANKM) ,A
+        LD  BC, $7FFD
+        OUT (C), A           ;AHORA ESTOY ARRIBA CON ROM2 PAGINADA
+        
+        LD  A, $82           ;establezco mis int. en MODO 2, que solo tiene un RETI
+        LD  I, A         ;as? me evito que +3DOS me pisotee la zona de variables
+        LD  HL, $8301        ;cosa que no pasar?a si la carga fuera desde cinta real
+        LD  ($82FF), HL
+        LD  (HL), $ED        ; ---> RETI - o sea que no hago nada
+        INC HL
+        LD  (HL), $4D
+        IM  2
+
+        LD  A, (EXCEPCIONES)
+        CP  $01
+        JR  Z, RESET_FILE
+        CP  $02
+        JR  Z, SET_POS_FILE
+        
+        LD  BC, $0607        ;ARCHIVO #6 ABIERTO EN ROM1 POR RUTINA MODIFICADA
+                        ;QUE INTERPRETA EL COMANDO SPECTRUM "filename.tap"
+        
+        LD  DE, buffer_file_size
+        LD  HL, temp_buffer_file
+
+        CALL    DOS_READ        ;LEO UN "sector"
+        DI              ;+3DOS *SIEMPRE* HABILITA LAS INT CUANDO TERMINA SU
+                        ;SERVICIO
+        LD  HL, buffer_file_size ; hago de cuenta que lei todos los bytes
+        JR  C, SIN_ERROR
+
+        CP  25          ; 25 = End of file
+        JR  Z, EOF
+
+        LD  B, $06           ; OTRO error que no sea EOF abandono el archivo y desactivo la carga
+        CALL    DOS_ABANDON
+        XOR A
+        LD  (tapeloader_stat1), A
+        INC A
+        LD  (terminar_CARGA), A
+        LD  HL, $0001        ; le hago creer que entro por lo menos un byte para que retorne bien
+        JR  SIN_ERROR       ; y como desactive la carga desde "cinta" no volvermos aqui
+
+SET_POS_FILE:   
+        LD  B, $06
+        LD  DE, buffer_file_size
+        PUSH    DE
+        LD  DE, (save_POS_FILE+0)
+        LD  HL, (save_POS_FILE+2)
+        JR  CONT_SET_POS
+
+RESET_FILE: 
+        LD  DE,buffer_file_size
+
+EOF:        
+        PUSH    DE          ; reestablezco el puntero de archivo a 0. es como si hubiese rebobinado
+        LD  H, $00           ; la cinta y comienza de nuevo
+        LD  L, H
+        LD  D, H
+        LD  E, H
+        LD  (save_POS_FILE+0), HL
+        LD  (save_POS_FILE+2), HL
+CONT_SET_POS:   
+        LD  B,$06           
+
+        CALL    DOS_SET_POSITION
+        POP DE
+        AND A           ; segun el manual si hay un error en DE me queda la cantidad remante
+        LD  HL, buffer_file_size ; por leer, entonces calculo cuantos bytes se leyeron
+        SBC HL, DE
+        
+SIN_ERROR:  
+        LD  BC, $7FFD
+        LD  A, $17
+        OUT (C), A
+        LD  BC, $1ffd
+        LD  A, $04
+        OUT (C), A           ;PARO EL MOTOR
+        JP  RETPAG7
+
+RETPAG7:    
+        LD  SP, (save_STACK)
+
+        LD  DE, temp_buffer_file
+        LD  (buffer_ADDR), DE
+        LD  (buffer_COUNT), HL
+        
+RETPAG7_3:  
+        LD  HL, save_buffer      ;RECUPERO LO QUE ESTABA EN $8000 + 1K
+        LD  DE, temp_working_mem
+        LD  BC, 1024
+        LDIR
+
+        CALL REST_INT_MEMORY
+        RET             ; SE RETORNA EN HL LA CANTIDAD DE BYTES LEIDOS
+
+SPARE2:     
+;        display "Spare2 Quedan ", /d,319 - ($-FREE_START2)," Bytes libres"
+        DEFS 319 - ($-FREE_START2);
+      else
         DEFS    319
+      endif
+;#########################################################################################
 
         RST     $38
         RST     $38
 
 o3C01   DEFM    $13, $00, "19", $13, $01, "87"  ; testcard message
                                                 ; why is it here???
+
+;#########################################################################################
+      if zx_tap
+FREE_START3:  
+
+END_LDTAPE: 
+        LD  A,$01       ; EN EL CASO DE APRETAR SPACE MIENTRAS SE CARGA
+        CALL    CALL_OTRAS  ; no importa conservar el valor de 'A'
+        INC SP
+        INC SP
+        EX  AF,AF'
+        AND A
+        RET
+                
+CALL_OTRAS: 
+        PUSH    HL
+        PUSH    DE
+        PUSH    BC
+        PUSH    IX
+        EX  AF,AF'
+        PUSH    AF
+        EX  AF,AF'
+        LD  HL, RET_CALL2
+        PUSH    HL
+        LD  L,A
+
+        LD  A,$17
+        LD  BC,$7FFD
+        OUT (C),A
+        LD  A,L
+        LD  (EXCEPCIONES),A
+        
+        JP  ALT_ENTRY
+
+RET_CALL2:  
+        EX  AF,AF'
+        POP AF
+        EX  AF,AF'
+        POP IX
+        POP BC
+        POP DE
+        POP HL
+        RET
+
+
+REST_INT_MEMORY:
+        EX  (SP),HL
+        IM  1
+        LD  A,(save_INTERR)
+        CP  $FF
+        JR  Z,OK_IM1
+        IM  2
+OK_IM1:     
+        LD  A,(save_REGI)
+        LD  I,A
+        LD  A,(tmp_BANKM)
+        LD  (BANKM),A
+        LD  A,(tmp_BANK678)
+        LD  (BANK678),A
+        LD  A,(conf_ram)        ;REESTABLEZCO ROM/RAM
+        LD  BC,$7FFD
+        OUT (C),A
+        EX  (SP),HL
+        RET
+
+DUMMY_IM2:  
+        XOR A
+        LD  ($5B00),A
+        RETI
+
+
+SET_POS_SIG:    
+        PUSH    DE
+        PUSH    BC
+        PUSH    HL          ;ESTA RUTINA SE LLAMA CADA vez
+        LD  A,$17           ;que se empieza a cargar un bloque
+        LD  BC,$7FFD        ;va guardando en (save_POS_FILE) la
+        OUT (C),A           ;posicion de archivo en donde comienza
+        PUSH    HL          ;el siguiente bloque. para ser
+        POP DE          ;usado en el manejo de errores
+        INC DE
+        INC DE
+        LD  HL, (save_POS_FILE+2)
+        AND A
+        ADD HL,DE
+        LD  (save_POS_FILE+2),HL
+        LD  HL, save_POS_FILE+0
+        JR  NC, NODESB
+        INC (HL)
+NODESB:     
+        LD  A, (conf_ram)        ;REESTABLEZCO ROM/RAM
+        OUT (C),A
+        POP HL
+        POP BC
+        POP DE
+        RET
+
+MOVE_NEXT_BLQ:  
+        LD  A,$02       ; mover al bloque siguiente en caso de "error"
+        CALL    CALL_OTRAS
+        
+ERROR_EN_CARGA: 
+        CALL    SWAPEAR_RT_ALERT   ; retorno forzado por posible error +3dos
+        INC SP
+        INC SP
+        EX  AF,AF'
+        AND A
+        RET
+
+SWAPEAR_RT_ALERT:
+        PUSH    DE
+        PUSH    BC
+        PUSH    HL
+        LD  A, $17
+        LD  BC, $7FFD
+        OUT (C) ,A
+        LD  HL, (rt_alert)
+        LD  DE, (save_rt_alert)
+        LD  (rt_alert), DE
+        LD  (save_rt_alert), HL
+        JR  NODESB
+
+CHECK_TERMINAR: 
+        PUSH    AF
+        PUSH    BC
+        LD  A, $17
+        LD  BC, $7FFD
+        OUT (C) ,A
+        LD  A, (terminar_CARGA)
+        CP  $01
+        LD  A, (conf_ram)
+        OUT (C), A
+        POP BC
+        JR  NZ, NO_ERROR_P3DOS
+        POP AF
+        INC SP
+        INC SP
+        INC SP
+        INC SP
+        
+        JR  ERROR_EN_CARGA
+
+NO_ERROR_P3DOS: 
+        POP AF
+        RET
+
+SET_NORM_MEMORY  
+        LD  A,$10
+        LD  (BANKM), A
+        LD  A,$04
+        LD  (BANK678), A
+        RET
+
+SPARE3:     
+;        display "Spare3 Quedan ", /d,247 - ($-FREE_START3)," Bytes libres"
+        DEFS 247 - ($-FREE_START3);
+ 
+      else 
         DEFS    247
+      endif
+;#########################################################################################
 
 ; -------------------------------
 ; THE 'ZX SPECTRUM CHARACTER SET'
@@ -51950,7 +52713,6 @@ o3D00:  DEFB    %00000000
       ENDIF
 
 ; $5E - Character: '^'          CHR$(94)
-
         DEFB    %00000000
         DEFB    %00010000
         DEFB    %00111000
@@ -51961,7 +52723,6 @@ o3D00:  DEFB    %00000000
         DEFB    %00000000
 
 ; $5F - Character: '_'          CHR$(95)
-
         DEFB    %00000000
         DEFB    %00000000
         DEFB    %00000000
@@ -52344,7 +53105,6 @@ o3D00:  DEFB    %00000000
         DEFB    %10011001
         DEFB    %01000010
         DEFB    %00111100
-
 
 .end                            ; generic cross-assembler directive
 

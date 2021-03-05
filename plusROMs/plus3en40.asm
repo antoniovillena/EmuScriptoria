@@ -5,4 +5,5 @@
         define  mmc     0
         define  curkl   0
         define  carmel  0
+        define  zx_tap  0
         include plus3.asm

@@ -6,4 +6,5 @@
         define  mmcdata $eb
         define  curkl   0
         define  carmel  0
+        define  zx_tap  0
         include plus3.asm

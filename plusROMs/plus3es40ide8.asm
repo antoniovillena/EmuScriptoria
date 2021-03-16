@@ -1,14 +1,14 @@
-        output  plus3es41.rom
+        output  plus3eside8.rom
         define  spanish     1
-        define  v41         1
-        define  garry       0
+        define  v41         0
+        define  garry       1
         define  mmcen       0
         define  mmcdata     0
         define  curkl       0
         define  carmel      0
-        define  zx_tap      0
+        define  zx_tap      1
         define  euro        0
         define  floppy35    0
-        define  bluerom     0
+        define  bluerom     1
         define  mhfont      0
         include plus3.asm

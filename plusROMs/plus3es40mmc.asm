@@ -1,9 +1,9 @@
-        output  plus3en40divmmc.rom
-        define  spanish     0
+        output  plus3es40mmc.rom
+        define  spanish     1
         define  v41         0
         define  garry       1
-        define  mmcen       $e7     ; $1f = MMC     $e7 = DVM
-        define  mmcdata     $eb     ; $3F = MMC     $eb = DVM
+        define  mmcen       $1f     ; $1f = MMC     $e7 = DVM
+        define  mmcdata     $3f     ; $3F = MMC     $eb = DVM
         define  curkl       0
         define  carmel      0
         define  zx_tap      1

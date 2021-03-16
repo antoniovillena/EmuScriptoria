@@ -1,4 +1,4 @@
-        output  plus3eside8.rom
+        output  plus3es40ide8.rom
         define  spanish     1
         define  v41         0
         define  garry       1

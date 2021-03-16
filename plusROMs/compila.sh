@@ -50,27 +50,27 @@ mmv plus3es40mmc_eprom_\* plus3es40mmc_eprom_\#1.rom
 
 # En las que vienen a continuación se necesita
 # reemplazar la rom 2 con la de la distribución oficial
-sjasmplus plus3endivide.asm
-split -b 16384 -d plus3endivide.rom plus3endivide_rom_
-# split -b 32768 -d plus3endivide.rom plus3endivide_eprom_
-mmv plus3endivide_rom_\* plus3endivide_rom_\#1.rom
-echo utilizar diven3e2.rom del Spectrum +3e v1.43 en lugar de plus3endivide_rom_02.rom
+sjasmplus plus3en40divide.asm
+split -b 16384 -d plus3en40divide.rom plus3en40divide_rom_
+# split -b 32768 -d plus3en40divide.rom plus3en40divide_eprom_
+mmv plus3en40divide_rom_\* plus3en40divide_rom_\#1.rom
+echo utilizar diven3e2.rom del Spectrum +3e v1.43 en lugar de plus3en40divide_rom_02.rom
 
-sjasmplus plus3esdivide.asm
-split -b 16384 -d plus3esdivide.rom plus3esdivide_rom_
-# split -b 32768 -d plus3esdivide.rom plus3esdivide_eprom_
-mmv plus3esdivide_rom_\* plus3esdivide_rom_\#1.rom
-echo utilizar dives3e2.rom del Spectrum +3e v1.43 en lugar de plus3esdivide_rom_02.rom
+sjasmplus plus3es40divide.asm
+split -b 16384 -d plus3es40divide.rom plus3es40divide_rom_
+# split -b 32768 -d plus3es40divide.rom plus3es40divide_eprom_
+mmv plus3es40divide_rom_\* plus3es40divide_rom_\#1.rom
+echo utilizar dives3e2.rom del Spectrum +3e v1.43 en lugar de plus3es40divide_rom_02.rom
 
-sjasmplus plus3enide8.asm
-split -b 16384 -d plus3enide8.rom plus3enide8_rom_
-# split -b 32768 -d plus3enide8.rom plus3eide8_eprom_
-mmv plus3enide8_rom_\* plus3enide8_rom_\#1.rom
-echo utilizar sm8en3e2.rom del Spectrum +3e v1.43 en lugar de plus3enide8_rom_02.rom
+sjasmplus plus3en40ide8.asm
+split -b 16384 -d plus3en40ide8.rom plus3en40ide8_rom_
+# split -b 32768 -d plus3en40ide8.rom plus3en40ide8_eprom_
+mmv plus3en40ide8_rom_\* plus3en40ide8_rom_\#1.rom
+echo utilizar sm8en3e2.rom del Spectrum +3e v1.43 en lugar de plus3en40ide8_rom_02.rom
 
-sjasmplus plus3eside8.asm
-split -b 16384 -d plus3eside8.rom plus3eside8_rom_
-# split -b 32768 -d plus3eside8.rom plus3eside8_eprom_
-mmv plus3eside8_rom_\* plus3eside8_rom_\#1.rom
-echo utilizar sm8es3e2.rom del Spectrum +3e v1.43 en lugar de plus3eside8_rom_02.rom
+sjasmplus plus3es40ide8.asm
+split -b 16384 -d plus3es40ide8.rom plus3es40ide8_rom_
+# split -b 32768 -d plus3es40ide8.rom plus3es40ide8_eprom_
+mmv plus3es40ide8_rom_\* plus3es40ide8_rom_\#1.rom
+echo utilizar sm8es3e2.rom del Spectrum +3e v1.43 en lugar de plus3es40ide8_rom_02.rom
 

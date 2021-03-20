@@ -11,4 +11,5 @@
         define  floppy35    0
         define  bluerom     0
         define  mhfont      0
+        define  pokemon     0
         include plus3.asm

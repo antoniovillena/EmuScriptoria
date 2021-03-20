@@ -6,3 +6,12 @@ SjAsmPlus plus3en40divmmc.asm
 SjAsmPlus plus3es40divmmc.asm
 SjAsmPlus plus3en40mmc.asm
 SjAsmPlus plus3es40mmc.asm
+
+SjAsmPlus plus3en40divmmcpoke.asm
+SjAsmPlus plus3es40divmmcpoke.asm
+
+SjAsmPlus plus3en40divide.asm
+SjAsmPlus plus3es40divide.asm
+SjAsmPlus plus3en40ide8.asm
+SjAsmPlus plus3es40ide8.asm
+

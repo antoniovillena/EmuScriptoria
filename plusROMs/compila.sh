@@ -47,6 +47,18 @@ split -b 32768 -d plus3es40mmc.rom plus3es40mmc_eprom_
 mmv plus3es40mmc_rom_\* plus3es40mmc_rom_\#1.rom
 mmv plus3es40mmc_eprom_\* plus3es40mmc_eprom_\#1.rom
 
+sjasmplus plus3en40divmmcpoke.asm
+split -b 16384 -d plus3en40divmmcpoke.rom plus3en40divmmcpoke_rom_
+split -b 32768 -d plus3en40divmmcpoke.rom plus3en40divmmcpoke_eprom_
+mmv plus3en40divmmcpoke_rom_\* plus3en40divmmcpoke_rom_\#1.rom
+mmv plus3en40divmmcpoke_eprom_\* plus3en40divmmcpoke_eprom_\#1.rom
+
+sjasmplus plus3es40divmmcpoke.asm
+split -b 16384 -d plus3es40divmmcpoke.rom plus3es40divmmcpoke_rom_
+split -b 32768 -d plus3es40divmmcpoke.rom plus3es40divmmcpoke_eprom_
+mmv plus3es40divmmcpoke_rom_\* plus3es40divmmcpoke_rom_\#1.rom
+mmv plus3es40divmmcpoke_eprom_\* plus3es40divmmcpoke_eprom_\#1.rom
+
 
 # En las que vienen a continuación se necesita
 # reemplazar la rom 2 con la de la distribución oficial

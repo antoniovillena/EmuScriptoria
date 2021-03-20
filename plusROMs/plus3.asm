@@ -321,8 +321,8 @@
         ; $fe00-$ffff used to load bootsector by +3DOS ROM
 ;--------------------------------------------------
 
+;#######################################    ZXTAP definitions    ######################################################
     IF zx_tap
- ;#################################################################################################
         define  temp_working_mem    $8000   ; idem para contener rutinas temp y stack
         define  save_buffer         $c100   ; creo que +3DOS no usa esto (1K)
         define  temp_buffer_file    $c600   ; tmp en donde vuelco lo que lea desde disco
@@ -346,9 +346,12 @@
                                             ; mientras dure la carga desde "cinta"
 
         define  buffer_file_size    5*1024  ; si uso valores mayores, o no funciona o queda corrupto
-;##################################################################################################
     ENDIF
+ ;#####################################################################################################################
 
+    IF pokemon&&!zx_tap
+        DEFINE  lenp  $c0       ; $40 if ZX Spectrum 16K
+    ENDIF
 
       .macro  ROM1  par1
         call    l3e80
@@ -19238,13 +19241,13 @@ m3ae1   ROM3    o1C8C
         ld      a, $ff
         ld      (de), a
         
-; #############################################################################        
+; #####################################################################################################################
         if zx_tap
             call    is_tap
         else
             ld      hl, tmp_file
         endif
-; #############################################################################
+; #####################################################################################################################
 
         call    m32b6
         ROM2    IDE_SNAPLOAD
@@ -19671,7 +19674,7 @@ m3e5c   ld      b, a
 m3f5c   defb    $ef, $01, $c1, $02, $34, $40, $41, $00, $00, $32, $e1, $38, $c9
 
 
-; ####################################################################################################################
+; ##############################################    IS_TAP subroutine    ##############################################
       if zx_tap
 is_tap:     
         xor     a
@@ -19734,7 +19737,7 @@ notap:
         ret
       endif
 
-; ####################################################################################################################
+; #####################################################################################################################
 
   ELSE
 ; The "COPY RANDOMIZE" command
@@ -19950,7 +19953,7 @@ m3d03   jp      m1e70           ; jump to input routine
 m3d06   jp      m1f6e           ; jump to output routine
   ENDIF
 
-; ####################################################################################################################
+; ###########################################   BLUEROM subroutines  ##################################################
       IF bluerom
 newfill                         ; 0x3900 in bluerom
         ld      hl,tmp_buff+$23 ; end of scratch area
@@ -19982,9 +19985,9 @@ fill_ret: ret
         inc     bc
         ld      b,0x09
 /**************************************************************************************
-    ESTAS OTRAS RUTINAS SE ENCUENTRAN EN LA BLUEROM Y SE PODRÍAN INCORPORAR TAMBIÉN    
+    THESE OTHER SUBROUTINES, FOUND IN THE BLUEROM, COULD BE ADDED AS WELL
 ***************************************************************************************
-pixel_st                ; se llama desde 0x3927 en bluerom
+pixel_st                ; called at 0x3927 in bluerom
         ld      a,0xbf
         sub     b
         ld      b,a
@@ -20012,22 +20015,22 @@ pixel_st                ; se llama desde 0x3927 en bluerom
         and     0x07
         ret
 
-copy    ld      a,(0xc005) ; 0x3945 en bluerom
+copy    ld      a,(0xc005) ; 0x3945 in bluerom
         jr      sig
-        ld      a,(0xc004)     ; 0x394a en bluerom
+        ld      a,(0xc004)     ; 0x394a in bluerom
 sig     or      0x20
         ret
 **************************************************************************/
 
-compare cp      0x00    ; 0x3950 en bluerom
+compare cp      0x00    ; 0x3950 in bluerom
         ret     z
         cp      0x03
         ld      a,0x06
         ret
       ENDIF
-; ####################################################################################################################
+; #####################################################################################################################
 
-      defs 0x0 + (0x3e80-$)
+      defs 0x0 + (0x3e80-$), $ff
 
 ; Subroutine to call a subroutine in ROM 0
 ; The subroutine address is inline after the call to this routine
@@ -32297,17 +32300,24 @@ o0055:  LD      (IY+$00),L      ; Store it in the system variable ERR_NR.
 o005F:  DEFB    $FF, $FF, $FF   ; Unused locations
         DEFB    $FF, $FF, $FF   ; before the fixed-position
         DEFB    $FF             ; NMI routine.
+      IF pokemon&&!zx_tap
+        push    af
+        ld      a, ($5c8f)
+        cp      $39
+        jp      nz, poke
+        ld      a, 0
+      ELSE
 o0066:  PUSH    AF              ; save the
         PUSH    HL              ; registers.
         LD      HL,($5CB0)      ; fetch the system variable NMIADD.
         LD      A,H             ; test address
         OR      L               ; for zero.
-
         JR      Z,o0070         ; skip to NO-RESET if ZERO
         JP      (HL)            ; jump to routine ( i.e. o0000 )
 
 ;; NO-RESET
 o0070:  POP     HL              ; restore the
+      ENDIF
         POP     AF              ; registers.
         RETN                    ; return to previous interrupt state.
 
@@ -51314,7 +51324,7 @@ o38AC   LD      BC,$7FFD
         OUT     (C),A           ; page back page 0
         RET
 
-;#######################################################################################
+;###########################################    ZXTAP subroutine part 1    ############################################
       if zx_tap
     ;**** disponible ****
         /*
@@ -51589,11 +51599,20 @@ GET_BYTE_TAPE:
 
 SPARE1:     
 ;        display "Spare1 Quedan ", /d,331 - ($-FREE_START1)," Bytes libres"
-        DEFS 331 - ($-FREE_START1);
+;        DEFS 331 - ($-FREE_START1);
       else
-        DEFS    331
+;        DEFS    331
       endif
 ;#######################################################################################
+
+    IF pokemon&&!zx_tap
+tab01   defb    $ff, $00, $00, $00, $ff, $00, $00, $00, $00, $23, $05
+tab02   defb    $00, $10, $01, 'snapshot'
+        defb    $27, $00, $00, $00, $27, $00
+    ENDIF
+
+    ;display "After TAP1 and POKEMON, there are ", /d,(0x3A00-$), " bytes free"
+    defs 0x0 + (0x3A00-$), $ff
 
 ; The printer input (o3a00) and output (o3a05) routines
 ; Channel information for "P" channel points here
@@ -51719,10 +51738,15 @@ o3AA8   SCF
 o3AB1   DEFM    "SPECTRU", 'M'+$80
 o3AB9   DEFM    "PLA", 'Y'+$80
         
+        JP      l3AC2           ; what's this for???
 
-        JP      o3C01           ; what's this for???
+        RST     $38
+        RST     $38
 
-;#########################################################################################
+l3AC2   DEFM    $13, $00, "19", $13, $01, "87"  ; testcard message
+                                                ; why is it here???
+
+;###########################################     ZXTAP subroutine part 2    ###########################################
       if zx_tap
 FREE_START2:    
 
@@ -51926,20 +51950,7 @@ RETPAG7_3:
 
 SPARE2:     
 ;        display "Spare2 Quedan ", /d,319 - ($-FREE_START2)," Bytes libres"
-        DEFS 319 - ($-FREE_START2);
-      else
-        DEFS    319
-      endif
-;#########################################################################################
 
-        RST     $38
-        RST     $38
-
-o3C01   DEFM    $13, $00, "19", $13, $01, "87"  ; testcard message
-                                                ; why is it here???
-
-;#########################################################################################
-      if zx_tap
 FREE_START3:  
 
 END_LDTAPE: 
@@ -52092,11 +52103,364 @@ SET_NORM_MEMORY
 
 SPARE3:     
 ;        display "Spare3 Quedan ", /d,247 - ($-FREE_START3)," Bytes libres"
-        DEFS 247 - ($-FREE_START3);
- 
-      else 
-        DEFS    247
       endif
+;#############################################     FIN ZXTAP 2     ####################################################
+
+;###############################################     POKEMON     ######################################################
+      if pokemon&&!zx_tap
+        DEFINE  caden   $5800-6
+poke    ld      (caden-2), sp
+        ld      sp, caden-15-1
+        push    bc
+        push    de
+        ld      bc, 11
+        push    hl
+        push    iy
+        ld      iy, $5c3a
+        jr      pok01
+        defb    $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff
+pok01   ld      hl, $5c78
+        ex      af, af'
+        push    af
+        ld      sp, $5700
+        ld      e, (hl)
+        inc     l
+        ld      d, (hl)
+        ld      (hl), b
+        push    de
+        ld      l, $8f
+        ld      e, (hl)
+        ld      (hl), $39
+        inc     l
+        ld      d, (hl)
+        ld      (hl), b
+        push    de
+        inc     l
+        ld      a, i
+        ld      e, a
+        ld      a, $18
+        jp      po, pok02
+        ld      a, l
+pok02   ld      r, a
+        ld      i, a
+        ld      d, (hl)
+        ld      (hl), b
+        push    de
+        ld      l, $3b
+        ld      e, (hl)
+        ld      (hl), 8
+        ld      l, $41
+        ld      d, (hl)
+        ld      (hl), b
+        push    de
+        ld      l, b
+        ld      de, caden-15
+        ldir
+        ex      de, hl
+        ld      hl, tab01+10
+        ld      c, e
+        dec     e
+        lddr
+        push    bc
+        ld      hl, caden
+        xor     a
+pok03   ld      (hl), b
+pok04   inc     l
+        jr      nz, pok03
+        or      a
+        ld      l, caden & $ff
+        ld      (hl), l
+pok05   ld      de, caden+1
+        jr      z, pok06
+        ld      (de), a
+        ld      (hl), 2
+pok06   ld      hl, $4000
+        ld      b, 5
+pok07   push    de
+        ex      de, hl
+        ld      l, (hl)
+        add     hl, hl
+        ld      h, 15
+        add     hl, hl
+        add     hl, hl
+        ex      de, hl
+        call    0x0B99
+        pop     de
+        inc     de
+        djnz    pok07
+        ld      hl, $5c3b
+        ei
+pok08   bit     5, (hl)
+        jr      z, pok08
+        di
+        res     5, (hl)
+        ld      a, ($5c08)
+        or      $20
+        ld      hl, caden
+        ld      c, (hl)
+        cp      $2d
+        jr      z, pok14
+        jr      nc, pok09
+        dec     (hl)
+        jr      z, pok09
+        xor     a
+        dec     c
+        dec     (hl)
+pok09   inc     (hl)
+        jp      m, pok03
+        add     hl, bc
+        ld      (hl), a
+        xor     a
+        jr      pok05
+pok10   inc     l
+pok11   add     a, -10
+pok12   inc     (hl)
+        jr      c, pok11
+        jp      c, $ffff
+        inc     l
+pok13   add     a, 10+$30
+        ld      (hl), a
+        xor     a
+        jr      pok04
+pok14   dec     c
+        jp      m, pok18
+        ld      b, c
+        ex      de, hl
+        ld      h, l
+pok15   inc     e
+        ld      a, (de)
+        and     $0f
+        push    bc
+        add     hl, hl
+        ld      b, h
+        ld      c, l
+        add     hl, hl
+        add     hl, hl
+        add     hl, bc
+        ld      b, 0
+        ld      c, a
+        add     hl, bc
+        pop     bc
+        djnz    pok15
+        ld      a, (caden+1)
+        sub     'r'
+        ret     z
+        dec     a
+        jr      z, pok17
+        bit     2, c
+        pop     de
+        jr      nz, pok16
+        ex      de, hl
+        ld      (hl), e
+        inc     hl
+pok16   push    hl
+        ld      a, (hl)
+        ld      hl, caden+2
+        ld      (hl), $2f
+        dec     l
+        ld      (hl), $32
+        sub     200
+        jr      nc, pok10
+        dec     (hl)
+        sub     -100
+        jr      nc, pok10
+        dec     (hl)
+        dec     (hl)
+        add     a, 90
+        jr      nc, pok13
+        jr      pok12
+pok17   ex      af, af'
+pok18   ld      c, 11
+        pop     hl
+        ld      hl, caden-15
+        ld      de, $5c00
+        ldir
+        ld      hl, $5805
+        ld      a, (hl)
+        rra
+        rra
+        rra
+        xor     (hl)
+        and     %00000111
+        xor     (hl)
+        dec     l
+        ld      c, l
+        ld      (hl), a
+        ld      de, $5803
+        lddr
+        pop     de
+        ld      hl, $5c41
+        ld      (hl), d
+        ld      l, $3b
+        ld      (hl), e
+        pop     de
+        ld      l, $91
+        ld      a, e
+        ld      i, a
+        ld      (hl), d
+        pop     de
+        dec     l
+        ld      (hl), d
+        dec     l
+        ld      (hl), e
+        pop     hl
+        ld      ($5c78), hl
+        ex      af, af'
+        jp      z, save
+pok19   ld      sp, $57e0
+        pop     af
+        ex      af, af'
+        pop     iy
+        pop     hl
+        pop     de
+        pop     bc
+        ld      a, r
+        jp      p, pok20
+        ei
+pok20   ld      sp, (caden-2)
+        pop     af
+        ret
+;tab01   defb    $ff, $00, $00, $00, $ff, $00, $00, $00, $00, $23, $05
+;tab02   defb    $00, $10, $01, 'snapshot'
+;        defb    $27, $00, $00, $00, $27, $00
+
+;56d9   $3e, 0                            i     ld  a, i
+;56db   $ed, $47                                ld  i, a
+;56dd   $de, $c0, $37, $0e, $8f, $39, $96       over usr 5ccb
+;56e4   $01, 0,   0                       bc'   ld  bc, 0
+;56e7   $11, 0,   0                       de'   ld  de, 0
+;56ea   $21, 0,   0                       hl'   ld  hl, 0
+;56ed   $d9                                     exx
+;56ee   $ed, $56                          im    im  1
+;56f0   $fd, $21, 0,   0                  iy    ld  iy, 0
+;56f4   $11, $00, $c0                           ld  hl, $4000
+;56f7   $21, $00, $40                           ld  de, $c000
+;56fa   $31, $00, $58                           ld  sp, $5800
+;56fd   $c3, $f4, $07                           jp  $07f4
+tab03   defb    $3e, 0,   $ed, $47, $de, $c0, $37, $0e, $8f, $39
+        defb    $96, $01, 0,   0,   $11, 0,   0,   $21, 0,   0
+        defb    $d9, $ed, $56, $fd, $21, 0,   0,   $11, $00, lenp
+        defb    $21, $00, $40, $31, $00, $58, $c3, $f4, $07
+
+;56e3   $21, 0,   0,   $e5, $f1, $08      af'   ld  hl, 0 / push hl / pop af / ex af,af'
+;56e9   $01, 0,   0                       bc    ld  bc, 0
+;56ec   $11, 0,   0                       de    ld  de, 0
+;56ef   $dd, $21, 0,   0                  ix    ld  ix, 0
+;56f3   $21, 0,   0,   $e5, $f1           af    ld  hl, 0 / push hl / pop af
+;56f8   $21, 0,   0                       hl    ld  hl, 0
+;56fb   $31, 0,   0                       sp    ld  sp, 0
+;56fe   $f3                               iff   di
+;56ff   $c9                                     ret
+
+
+tab04   defb    $21, 0,   0,   $e5, $f1, $08, $01, 0,   0,   $11
+        defb    0,   0,   $dd, $21, 0,   0,   $21, 0,   0,   $e5
+        defb    $f1, $21, 0,   0,   $31, 0,   0,   $f3, $c9
+
+;57fb-57ff  string                        56e3  <-57fe
+;57fa       string length                 05cd  <-57fc
+;57f8       sp
+;57ed-57f7  keyboard variables            5c00
+;57ec       unused                        im
+;57ea       unused
+;57e8       bc
+;57e6       de
+;57e4       hl
+;57e2       iy
+;57e0       af'
+;56fe       FRAMES1                       5c78
+;56fc       ATTR_T MASK-T                 5c8f     
+;56fa       I P_FLAG                      5c91
+;56f8       FLAGS MODE                    5c3b 5c41
+;56f6       poke addr
+;56f4       push de
+;56f2       call 0b99
+;56f0       push bc
+;56ee       push hl
+;56ec       call 0bdb
+;56ea       interrup addr
+;56e8       push af
+;56e6       push hl
+;56e4       push bc
+;56e2       push de
+;56e0       call 02bf                   bloque2 <-56e3
+;56de       call 028e                   bloque1 <-56d9
+
+        defb    $ff, $ff, $ff
+
+save    ld      sp, $5800
+        push    ix
+        ld      ix, tab02
+        ld      de, $0011
+        call    $04c6
+        ld      hl, tab03
+        ld      de, $56d9
+        push    de
+        ld      c, $27
+        push    bc
+        ldir
+        ld      a, i
+        ld      ($56da), a
+        exx
+        ld      ($56e5), bc
+        ld      ($56e8), de
+        ld      ($56eb), hl
+        exx
+        pop     de
+        pop     ix
+        ld      a, ($57ec)
+        or      a
+        jr      z, sav01
+        set     3, (ix+$16)
+sav01   ld      hl, ($57e2)
+        ld      ($56f2), hl
+        ld      a, $ff
+        call    $04c6
+        ld      d, $56
+        ld      hl, tab04+$1c
+        ld      c, $1d
+        lddr
+        pop     hl
+        ld      ($56f1), hl
+        inc     e
+        push    de
+        ld      hl, $05cd
+        push    hl
+        ld      sp, $57e0
+        pop     hl
+        ld      ($56e4), hl   ;af'
+        pop     hl
+        pop     hl
+        ld      ($56f9), hl   ;hl
+        pop     hl
+        ld      ($56ed), hl   ;de
+        pop     hl
+        ld      ($56ea), hl   ;bc
+        pop     hl
+        ld      ($56f4), hl   ;af
+        pop     hl
+        ld      a, i
+        jp      pe, sav02
+        set     3, (ix-3)     ;iff
+sav02   ld      hl, ($57f8)
+        ld      ($56fc), hl   ;sp
+        ld      ix, $4000
+        ld      de, lenp*256
+        sbc     a, a
+        call    $04c6
+        ld      ix, ($56f1)
+        jp      pok19
+
+        ; block   $3cde-$, $ff
+        ld      ($57ec), a
+        jp      $0038
+      endif
+;##############################     FIN POKEMON    #######################################
+
+    ;display "After TAP2 and POKEMON, there are ", /d,(0x3D00-$), " bytes free"
+    defs 0x0 + (0x3D00-$), $ff
+
+
 ;#########################################################################################
       IF mhfont&&spanish
 ; ----------------------------------
@@ -54317,6 +54681,13 @@ o3D00:  DEFB    %00000000
 ; Alvin Albrecht            for comments.
 ; Andy Styles               for full relocatability implementation and testing.
 ; Andrew Owen               for ZASM compatibility and format improvements.
+; Jose Angel Velasco        for carmel
+; Alejandro Valero          for curkl
+; Rafael Pardo              for mmcen and mmcdata
+; djr                       for zx_tap
+; Cristian Secara           for bluerom and floppy35
+; Antonio Villena           for pokemon
+; Javier Herrera            for mhfont and euro
 
 ;   For other assemblers you may have to add directives like these near the
 ;   beginning - see accompanying documentation.

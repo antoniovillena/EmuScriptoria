@@ -10654,7 +10654,7 @@ l3ff0   jp      l2187           ; go to the routine
         define  IDE_PARTITION_INIT  $00bb
         define  IDE_PARTITION_ERASE $00be
         define  IDE_PARTITION_RENAME $00c1
-        define  IDE_PARTITON_READ   $00c4
+        define  IDE_PARTITION_READ  $00c4
         define  IDE_PARTITION_WRITE $00c7
         define  IDE_PARTITION_WINFO $00ca
         define  IDE_PARTITION_OPEN  $00cd
@@ -18902,12 +18902,33 @@ m3824   push    hl
         call    m2b89
         call    m32b6
         ROM2    IDE_IDENTIFY
+
+      IFDEF ide8
+        cp      $42
+        scf
+        ccf
+        jp      nz,m395a
+
+      ELSE
         jp      nc, m395a
+      ENDIF
+
         ld      ix, $ed11
+
+      IFDEF ide8
+        ld      h, (ix+$03)
+        ld      l, (ix+$06)
+        ld      e, (ix+$01)
+        inc     ixh
+        ld      d, (ix+$00)
+
+      ELSE
         ld      h, (ix+$06)
         ld      l, (ix+$0c)
         ld      e, (ix+$02)
         ld      d, (ix+$03)
+      ENDIF
+
         call    m32ee
         call    m2b64
         ex      (sp), hl
@@ -19328,10 +19349,40 @@ m3b77   push    bc
         call    m32b6
         ROM2    IDE_IDENTIFY
         call    m32ee
+        
+      IFDEF ide8
+        cp      $42
+        scf
+        ccf
+        jr      nz, m3c06
+
+      ELSE
         jr      nc, m3c06
+      ENDIF
+
         ld      ix, $ed11
         ld      hl, m3d77
         call    m07d7
+        
+      IFDEF ide8
+        ld      l, (ix+$01)
+        inc     ixh
+        ld      h, (ix+$00)
+        dec     ixh
+        ld      e, $ff
+        call    m07df
+        ld      a, '/'
+        call    m07cf
+        ld      h, 0
+        ld      l, (ix+$03)
+        ld      e, $ff
+        call    m07df
+        ld      a, '/'
+        call    m07cf
+        ld      h, 0
+        ld      l, (ix+$06)
+
+      ELSE
         ld      l, (ix+$02)
         ld      h, (ix+$03)
         ld      e, $ff
@@ -19346,6 +19397,8 @@ m3b77   push    bc
         call    m07cf
         ld      h, 0
         ld      l, (ix+$0c)
+      ENDIF
+
         ld      e, $ff
         call    m07df
         ld      a, ')'
@@ -19357,7 +19410,7 @@ m3be0   pop     af
         push    af
         ld      hl, $ef98
         call    m32b6
-        ROM2    IDE_PARTITON_READ
+        ROM2    IDE_PARTITION_READ
         call    m32ee
         jp      nc, m3d15
         ld      ix, $ef98
@@ -19426,6 +19479,8 @@ m3c63   call    m07d7
         jr      z, m3c8f
         cp      3
         ld      hl, m3d57
+
+      IFNDEF ide8
         jr      z, m3c8f
         cp      4
         ld      hl, m3c7d
@@ -19441,6 +19496,8 @@ m3c63   call    m07d7
         jr      z, m3c8f
         cp      $20
         ld      hl, m3c9a
+      ENDIF
+
         jr      z, m3c8f
         cp      $fe
         ld      hl, m3d5d
@@ -19448,6 +19505,8 @@ m3c63   call    m07d7
         cp      $ff
         ld      hl, m3d63
         jr      z, m3c8f
+
+      IFNDEF ide8
         and     $f0
         cp      $30
         ld      hl, m3c9f
@@ -19455,6 +19514,8 @@ m3c63   call    m07d7
         cp      $40
         ld      hl, m3ca8
         jr      z, m3c8f
+      ENDIF
+
         ld      hl, m3d68
 m3c8f   call    m07d7
         ld      a, (ix+$10)
@@ -20451,7 +20512,7 @@ n0095   ld      bc,$7ffd
         jp      n2d19           ; IDE_PARTITION_INIT
         jp      n2f94           ; IDE_PARTITION_ERASE
         jp      n2c1d           ; IDE_PARTITION_RENAME
-        jp      n2b77           ; IDE_PARTITON_READ
+        jp      n2b77           ; IDE_PARTITION_READ
         jp      n2ba0           ; IDE_PARTITION_WRITE
         jp      n2c49           ; IDE_PARTITION_WINFO
         jp      n2ca2           ; IDE_PARTITION_OPEN
@@ -53146,9 +53207,9 @@ o3D00:
     DEFB    %00000000
     DEFB    %00000000
     DEFB    %00011110
-    DEFB    %00100000
-    DEFB    %01111100
-    DEFB    %00100000
+    DEFB    %01100000
+    DEFB    %11111100
+    DEFB    %01100000
     DEFB    %00011110
     DEFB    %00000000
   ELSE

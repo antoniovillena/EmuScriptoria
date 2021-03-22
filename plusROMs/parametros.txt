@@ -1,0 +1,14 @@
+spanish        : 1 español, 0 inglés.
+v41            : con valor 1, para compilar rom versión estándar v41 (no compatible garry=1).
+garry          : para generar roms del +3e.
+mmcen y mmcdata: puertos utilizados para generar versiones MMC y DIVMMC. Poner valor 0 para el resto de versiones.
+floppy35       : activado (valor 1) mejora la velocidad de acceso (exclusivamente si solo se van a usar disqueteras de 3,5").
+bluerom        : para incorporar ciertas de las características de la bluerom: rutina de formateo con factor interleave optimizado para unidad 3" o comando COPY que
+                 ahora envía las 24 líneas completas a impresora.
+euro           : con 1, sustituye el símbolo de la peseta o de la libra por el del euro.
+mhfont         : valor 1 para usar un mapa de caracteres específico que incorporaban las utilidades de +3 de la revista Microhobby (similar al Amstrad CPC).
+                 Solo disponible en español (spanish=1).
+zx_tap         : activo a 1, implementa la carga de ficheros .TAP. Ejemplo de uso: SPECTRUM "FICHERO.TAP":LOAD""
+carmel         : rutinas de inicialización de memoria y detección de interface de floppy disc, optimizadas para Zx-Uno.
+pokemon        : incluye un pokeador accesible a través de NMI. Incompatible con zx_tap.
+ide8           : para compilar para interfaz IDE de 8 bits.

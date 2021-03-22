@@ -1,0 +1,3 @@
+Con los fuentes de este repositorio se pueden compilar las roms +3e v1.43 para las siguientes versiones:
+- DIVMMX y ZXMMC. Obtendremos una rom única, otra doble para grabar las eproms y 4 roms para usar con emulador.
+- divIDE e IDE 8 bits. Se generan 4 roms, pero al no disponer de todos los fuentes, la rom 2 hay que sustituirla por la estándar del +3e v1.43 correspondiente a su interfaz.

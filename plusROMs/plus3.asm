@@ -18903,7 +18903,7 @@ m3824   push    hl
         call    m32b6
         ROM2    IDE_IDENTIFY
 
-      IFDEF ide8
+      IF ide8
         cp      $42
         scf
         ccf
@@ -18915,7 +18915,7 @@ m3824   push    hl
 
         ld      ix, $ed11
 
-      IFDEF ide8
+      IF ide8
         ld      h, (ix+$03)
         ld      l, (ix+$06)
         ld      e, (ix+$01)
@@ -19350,7 +19350,7 @@ m3b77   push    bc
         ROM2    IDE_IDENTIFY
         call    m32ee
         
-      IFDEF ide8
+      IF ide8
         cp      $42
         scf
         ccf
@@ -19364,7 +19364,7 @@ m3b77   push    bc
         ld      hl, m3d77
         call    m07d7
         
-      IFDEF ide8
+      IF ide8
         ld      l, (ix+$01)
         inc     ixh
         ld      h, (ix+$00)
@@ -19480,7 +19480,7 @@ m3c63   call    m07d7
         cp      3
         ld      hl, m3d57
 
-      IFNDEF ide8
+      IF !ide8
         jr      z, m3c8f
         cp      4
         ld      hl, m3c7d
@@ -19506,7 +19506,7 @@ m3c63   call    m07d7
         ld      hl, m3d63
         jr      z, m3c8f
 
-      IFNDEF ide8
+      IF !ide8
         and     $f0
         cp      $30
         ld      hl, m3c9f
@@ -54745,10 +54745,10 @@ o3D00:  DEFB    %00000000
 ; Jose Angel Velasco        for carmel
 ; Alejandro Valero          for curkl
 ; Rafael Pardo              for mmcen and mmcdata
-; djr                       for zx_tap
+; djr                       for zx_tap and ide8
 ; Cristian Secara           for bluerom and floppy35
 ; Antonio Villena           for pokemon
-; Javier Herrera            for mhfont and euro
+; Javier Herrera            for mhfont, euro and integrations
 
 ;   For other assemblers you may have to add directives like these near the
 ;   beginning - see accompanying documentation.

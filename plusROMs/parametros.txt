@@ -10,6 +10,6 @@ mhfont         : valor 1 para usar un mapa de caracteres específico que incorpo
                  Solo disponible en español (spanish=1).
 zx_tap         : activo a 1, implementa la carga de ficheros .TAP. Ejemplo de uso: SPECTRUM "FICHERO.TAP":LOAD""
 carmel         : rutinas de inicialización de memoria y detección de interface de floppy disc, optimizadas para Zx-Uno.
-pokemon        : incluye un pokeador accesible a través de NMI. Incompatible con zx_tap.
-pokemin        : incluye un pokeador muy simple de Goran Devic, pero que cabe con el zx_tap
+pokemon        : incluye un pokeador accesible a través de NMI. Incompatible con zx_tap y con pokemin.
+pokemin        : incluye un pokeador muy simple de Goran Devic accesible a través de NMI. La función SAVE a cinta se pierde. Incompatible con pokemon.
 ide8           : para compilar para interfaz IDE de 8 bits.

@@ -32361,24 +32361,31 @@ o0055:  LD      (IY+$00),L      ; Store it in the system variable ERR_NR.
 o005F:  DEFB    $FF, $FF, $FF   ; Unused locations
         DEFB    $FF, $FF, $FF   ; before the fixed-position
         DEFB    $FF             ; NMI routine.
-      IF pokemon&&!zx_tap
+    IF pokemon&&!zx_tap
         push    af
         ld      a, ($5c8f)
         cp      $39
         jp      nz, poke
         ld      a, 0
-      ELSE
+    ELSE
 o0066:  PUSH    AF              ; save the
         PUSH    HL              ; registers.
-        LD      HL,($5CB0)      ; fetch the system variable NMIADD.
+      IF pokemin
+        LD      HL,nmi_handler  ; fetch the system variable NMIADD.
         LD      A,H             ; test address
         OR      L               ; for zero.
         JR      Z,o0070         ; skip to NO-RESET if ZERO
+      ELSE
+        LD      HL,($5CB0)      ; fetch the system variable NMIADD.
+        LD      A,H             ; test address
+        OR      L               ; for zero.
+        JR      NZ,o0070        ; skip to NO-RESET if ZERO
+      ENDIF
         JP      (HL)            ; jump to routine ( i.e. o0000 )
 
 ;; NO-RESET
 o0070:  POP     HL              ; restore the
-      ENDIF
+    ENDIF
         POP     AF              ; registers.
         RETN                    ; return to previous interrupt state.
 
@@ -33584,6 +33591,104 @@ o046E:  DEFB    $89, $02, $D0, $12, $86;  261.625565290         C
 ;   This routine fetches a filename in ZX81 format and is not used by the
 ;   cassette handling routines in this ROM.
 
+      IF pokemin
+nmi_handler:                    ; NMI handler
+        push    bc
+        push    de
+        push    ix
+        ld      hl,$04000       ; Use the screen memory as a temp storage
+        ld      e,$08           ; Will load 8 characters (numbers)
+next_key:
+        ld      bc,$f7fe        ; Number row 1..5
+        in      a,(c)
+        ld      c,a
+        ld      a,$01           ; Preload "1"
+        bit     0,c             ; If the key has been pressed
+        jr      z,accept_key    ; Accept it
+        inc     a               ; Preload "2"
+        bit     1,c             ; and continue for every key up to "5"
+        jr      z,accept_key
+        inc     a
+        bit     2,c
+        jr      z,accept_key
+        inc     a
+        bit     3,c
+        jr      z,accept_key
+        inc     a
+        bit     4,c
+        jr      z,accept_key
+        ld      bc,$effe        ; Number row 6...0
+        in      a,(c)
+        ld      c,a
+        ld      a,$06
+        bit     4,c
+        jr      z,accept_key
+        inc     a
+        bit     3,c
+        jr      z,accept_key
+        inc     a
+        bit     2,c
+        jr      z,accept_key
+        inc     a
+        bit     1,c
+        jr      z,accept_key
+        xor     a
+        bit     0,c
+        jr      z,accept_key
+        jp      next_key
+accept_key:
+        ld      (hl),a          ; Store current key value into the buffer
+        inc     hl
+poll_key_release:               ; Poll for any pressed key to be released
+        ld      bc,$f7fe
+        in      a,(c)
+        cpl
+        and     $1f
+        jr      nz,poll_key_release
+        ld      bc,$effe
+        in      a,(c)
+        cpl
+        and     $1f
+        jr      nz,poll_key_release
+        dec     e               ; Decrement the number of keys expected
+        jr      nz,next_key     ; Jump back to accept next key if not yet done
+        ld      ix,$4000
+        ld      b,$05           ; First 5 numbers represent the address to POKE to
+        call    decimal_to_hl
+        push    hl              ; Address is in HL, store it
+        ld      b,$03           ; Next 3 numbers represent the value to POKE
+        call    decimal_to_hl
+        ld      a,l             ; Value is in L
+        pop     hl              ; Get the address
+        ld      (hl),a          ; POKE a value
+        pop     ix
+        pop     de
+        pop     bc
+        pop     hl
+        pop     af
+        retn
+; Read a decimal value pointed to by IX register
+; The number of digits is given in B register
+; Return the value in HL register
+decimal_to_hl:
+        ld      hl,$0000        ; Start with value of 0
+lp2:
+        push    bc
+        ld      b,$09           ; Multiply the current value by 10
+        push    hl
+        pop     de
+lp1:
+        add     hl,de
+        djnz    lp1
+        ld      e,(ix+0)        ; Read in the next digit
+        ld      d,b
+        pop     bc
+        add     hl,de           ; Add in the new value
+        inc     ix
+        djnz    lp2             ; Loop for the requested number of digits
+o04C2   
+o04C6   ret
+      ELSE
 ;; zx81-name
 
 o04AA:  CALL    o24FB           ; routine SCANNING to evaluate expression.
@@ -33814,6 +33919,7 @@ o0525:  RL      L               ; rotate left through carry
 o053C:  DJNZ    o053C           ; self loop to SA-DELAY
 
         RET                     ; return - - >
+      ENDIF
 
 ; ------------------------------
 ; THE 'SAVE/LOAD RETURN' ROUTINE

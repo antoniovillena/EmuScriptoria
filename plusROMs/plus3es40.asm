@@ -12,5 +12,6 @@
         define  bluerom     0
         define  mhfont      0
         define  pokemon     0
+        define  pokemin     0
         define  ide8        0
         include plus3.asm

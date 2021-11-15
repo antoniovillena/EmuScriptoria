@@ -17,3 +17,6 @@ SjAsmPlus plus3en40divide.asm
 SjAsmPlus plus3es40divide.asm
 SjAsmPlus plus3en40ide8.asm
 SjAsmPlus plus3es40ide8.asm
+
+SjAsmPlus plus3en40zxunopokes.asm
+SjAsmPlus plus3en40zxunotaps.asm

@@ -1,5 +1,5 @@
         output  plus3en40zxunotaps.rom
-        define  spanish     1
+        define  spanish     0
         define  v41         0
         define  garry       1
         define  mmcen       $e7     ; $1f = MMC     $e7 = DVM
@@ -14,4 +14,5 @@
         define  pokemon     0
         define  pokemin     1
         define  ide8        0
+        define  rename_spanish 0
         include plus3.asm

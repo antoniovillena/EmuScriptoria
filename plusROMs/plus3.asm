@@ -26878,23 +26878,64 @@ n22c7   push    hl
         ret
 
       IF spanish
-        defm    $8b, 13, $fb, "NO PREPARADA", 13
-        defm    $8e, $ff, $8b, 13, $fb, "DISCO PROTEGIDO CONTRA ESCRITURA"
-        defm    $8e, $ff, $8c, 13, $fb, "FALLO DE BUSQUEDA", 13
-        defm    $8e, $ff, $8d, "ERROR DE DATOS", 13
-        defm    $8e, $ff, $8d, "SIN DATOS", 13
-        defm    $8e, $ff, $8d, "FALTA MARCA DE DIRECCIONES", 13
-        defm    $8e, $ff, $8b, 13, $fb, "FORMATO INCORRECTO", 13
-        defm    $8e, $ff, $8d, "ERROR DESCONOCIDO", 13
-        defm    $8e, $ff, $8b, 13, $fb, "DISCO CAMBIADO; SUSTITUYALO", 13
-        defm    $8e, $ff, $8b, 13, $fb, "DISCO NO ADECUADO", 13
-        defm    $8e, $ff, "Introduzca el disco en la unidad para ", $fe
-        defm    " y luego pulse una tecla", $ff
-        defm    "UNIDAD ", $fe
-        defm    ":", $ff, $8b, " PISTA ", $fd, $ff, $8c
-        defm    " SECTOR ", $fc, 13, $fb, $ff, $fa
-        defm    "]REINTENTAR, IGNORAR O CANCELAR?", $ff
-        defs    5
+        if rename_spanish
+            defm    $8b, 13, $fb, "NO PREPARADA", 13
+            defm    $8e, $ff, $8b, 13, $fb, "DISCO PROTEGIDO ESCRITURA"
+            defm    $8e, $ff, $8c, 13, $fb, "FALLO BUSQUEDA", 13
+            defm    $8e, $ff, $8d, "ERROR DATOS", 13
+            defm    $8e, $ff, $8d, "SIN DATOS", 13
+            defm    $8e, $ff, $8d, "FALTA MARCA DE DIRECCIONES", 13
+            defm    $8e, $ff, $8b, 13, $fb, "FORMATO INCORRECTO", 13
+            defm    $8e, $ff, $8d, "ERROR DESCONOCIDO", 13
+            defm    $8e, $ff, $8b, 13, $fb, "DISCO CAMBIADO; SUSTITUYALO", 13
+            defm    $8e, $ff, $8b, 13, $fb, "DISCO NO ADECUADO", 13
+            defm    $8e, $ff, "Introduzca el disco para ", $fe
+            defm    " y pulse una tecla", $ff
+            defm    "UNIDAD ", $fe
+            defm    ":", $ff, $8b, " PISTA ", $fd, $ff, $8c
+            defm    " SECTOR ", $fc, 13, $fb, $ff, $fa
+            defm    "]REINTENTAR, IGNORAR O CANCELAR?", $ff
+rename_sp
+            push    hl
+            push    af
+            push    bc
+            call    n2bd6
+            pop     bc
+            ccf
+            ld      a, $39
+j_n2c46:
+            jp      nc, n2c46
+            pop     af
+            push    af
+            ld      hl, $ef11
+            call    n2b77
+            jr      nc, j_n2c46
+            pop     af
+            pop     hl
+            ld      de, $ef11
+            push    bc
+            ld      bc, $0010
+            jp      n2c46 - #0A  
+           defs 2        
+        else
+            defm    $8b, 13, $fb, "NO PREPARADA", 13
+            defm    $8e, $ff, $8b, 13, $fb, "DISCO PROTEGIDO CONTRA ESCRITURA"
+            defm    $8e, $ff, $8c, 13, $fb, "FALLO DE BUSQUEDA", 13
+            defm    $8e, $ff, $8d, "ERROR DE DATOS", 13
+            defm    $8e, $ff, $8d, "SIN DATOS", 13
+            defm    $8e, $ff, $8d, "FALTA MARCA DE DIRECCIONES", 13
+            defm    $8e, $ff, $8b, 13, $fb, "FORMATO INCORRECTO", 13
+            defm    $8e, $ff, $8d, "ERROR DESCONOCIDO", 13
+            defm    $8e, $ff, $8b, 13, $fb, "DISCO CAMBIADO; SUSTITUYALO", 13
+            defm    $8e, $ff, $8b, 13, $fb, "DISCO NO ADECUADO", 13
+            defm    $8e, $ff, "Introduzca el disco en la unidad para ", $fe
+            defm    " y luego pulse una tecla", $ff
+            defm    "UNIDAD ", $fe
+            defm    ":", $ff, $8b, " PISTA ", $fd, $ff, $8c
+            defm    " SECTOR ", $fc, 13, $fb, $ff, $fa
+            defm    "]REINTENTAR, IGNORAR O CANCELAR?", $ff
+            defs    5
+        endif
       ELSE
         defm    $8b, 13, $fb, "Not ready", 13
         defm    $8e, $ff, $8b, 13, $fb, "Write protected", 13

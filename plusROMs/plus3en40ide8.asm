@@ -14,4 +14,5 @@
         define  pokemon     0
         define  pokemin     0
         define  ide8        1
+        define  rename_spanish 0
         include plus3.asm

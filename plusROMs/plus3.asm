@@ -26878,7 +26878,7 @@ n22c7   push    hl
         ret
 
       IF spanish
-        if rename_spanish
+        IF rename_spanish
             defm    $8b, 13, $fb, "NO PREPARADA", 13
             defm    $8e, $ff, $8b, 13, $fb, "DISCO PROTEGIDO ESCRITURA"
             defm    $8e, $ff, $8c, 13, $fb, "FALLO BUSQUEDA", 13
@@ -26917,7 +26917,7 @@ j_n2c46:
             ld      bc, $0010
             jp      n2c46 - #0A  
            defs 2        
-        else
+        ELSE
             defm    $8b, 13, $fb, "NO PREPARADA", 13
             defm    $8e, $ff, $8b, 13, $fb, "DISCO PROTEGIDO CONTRA ESCRITURA"
             defm    $8e, $ff, $8c, 13, $fb, "FALLO DE BUSQUEDA", 13
@@ -26935,7 +26935,7 @@ j_n2c46:
             defm    " SECTOR ", $fc, 13, $fb, $ff, $fa
             defm    "]REINTENTAR, IGNORAR O CANCELAR?", $ff
             defs    5
-        endif
+        ENDIF
       ELSE
         defm    $8b, 13, $fb, "Not ready", 13
         defm    $8e, $ff, $8b, 13, $fb, "Write protected", 13
@@ -28078,9 +28078,15 @@ n2c11   pop     hl
         jr      n2bdb
 
       IF spanish
-n2c1d   ld      a, $3a
+n2c1d: 
+       IF rename_spanish
+        call    rename_sp
+        ret
+       ELSE
+        ld      a, $3a
         and     a
         ret
+       ENDIF
 n2c49   push    hl
         push    af
         ld      hl, $ef11
